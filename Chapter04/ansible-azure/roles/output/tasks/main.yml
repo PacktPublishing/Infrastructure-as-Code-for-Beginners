@@ -1,0 +1,9 @@
+---
+# tasks file for roles/output
+
+- name: Output details on the deployment
+  ansible.builtin.debug:
+    msg:
+      - "Virual Machine Password: {{ vm_password }}"
+      - "Wordpress Admin Password: {{ wp_password }}"
+      - "Wordpress URL: http://{{ load_balancer_public_ip_output.publicipaddresses[0].ip_address }}/"

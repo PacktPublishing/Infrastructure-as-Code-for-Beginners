@@ -1,0 +1,66 @@
+---
+# Application and basicAzure Resource Configuration
+##################################################
+
+app:
+  name: "iac-wordpress" # don't get too creative
+  shortname: "iacwp" # all lower-case, all one word
+  location: "us-east-1" # loction of where the resources are to be created
+  env: "prod" # enviroment tag for the app
+
+wordpress:
+  wp_title: "IAC WordPress"
+  wp_admin_user: "admin"
+  wp_admin_email: "test@test.com"
+
+# Resource names
+##################################################
+
+vpc_name: "{{ app.name }}-{{ app.env }}-{{ dict.vpc }}"
+vpc_subnet_web01_name: "{{ app.name }}-{{ app.env }}-web01-{{ dict.subnet }}"
+vpc_subnet_web02_name: "{{ app.name }}-{{ app.env }}-web02-{{ dict.subnet }}"
+vpc_subnet_rds01_name: "{{ app.name }}-{{ app.env }}-rds01-{{ dict.subnet }}"
+vpc_subnet_rds02_name: "{{ app.name }}-{{ app.env }}-rds02-{{ dict.subnet }}"
+vpc_igw_name: "{{ app.name }}-{{ app.env }}-{{ dict.igw }}"
+vpc_route_table_name: "{{ app.name }}-{{ app.env }}-{{ dict.route_table }}"
+vpc_security_group_name_efs: "{{ app.name }}-{{ app.env }}-efs-{{ dict.security_group }}"
+vpc_security_group_name_rds: "{{ app.name }}-{{ app.env }}-rds-{{ dict.security_group }}"
+vpc_security_group_name_web: "{{ app.name }}-{{ app.env }}-web-{{ dict.security_group }}"
+alb_name: "{{ app.name }}-{{ app.env }}-{{ dict.application_load_balancer }}"
+alb_target_group_name: "{{ app.name }}-{{ app.env }}-{{ dict.application_load_balancer_target_group }}"
+efs_name: "{{ app.name }}-{{ app.env }}-{{ dict.elastic_file_system }}"
+rds_db_instance_name: "{{ app.name }}-{{ app.env }}-{{ dict.rds_database }}"
+ec2_instance_name_admin: "{{ app.name }}-{{ app.env }}-admin-{{ dict.ec2_instance }}"
+lauch_configuration_name: "{{ app.name }}-{{ app.env }}-web-{{ dict.lauch_configuration }}"
+asg_name: "{{ app.name }}-{{ app.env }}-web-{{ dict.auto_scaling_group }}"
+
+# VPC Configuration
+##################################################
+vpc:
+  address_space: "10.0.0.0/24"
+
+# RDS Configuration
+##################################################
+
+rds:
+  datatabase_name: "wordpress"
+  username: "wordpress"
+  engine: "mysql"
+  engine_version: "5.7"
+  db_instance_class: "db.t2.micro"
+  allocated_storage: "20"
+
+# EC2 Configuration
+##################################################
+
+ec2:
+  instance_type: "t2.micro"
+  public_ip: true
+  asg:
+    min_size: 1
+    max_size: 3
+    desired_capacity: 2
+
+# Set some defaults using the details defined up top
+##################################################
+region: "{{ app.location }}"

@@ -1,0 +1,18 @@
+---
+
+- name: Delete all of the Azure resources
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars_files:
+    - group_vars/azure.yml
+    - group_vars/common.yml
+
+  tasks:
+    - name: Terminate all resources in the resource group
+      azure.azcollection.azure_rm_resourcegroup:
+        name: "{{ resource_group_name }}"
+        location: "{{ location }}"
+        state: absent
+        force_delete_nonempty: true

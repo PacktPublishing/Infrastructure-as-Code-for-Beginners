@@ -1,0 +1,107 @@
+---
+# tasks file for roles/azure-storage
+
+- name: Get facts about our resource group so we can get the subscription id
+  azure.azcollection.azure_rm_resourcegroup_info:
+    name: "{{ resource_group_name }}"
+  register: "current_sub_id"
+
+- name: Set the current subscription id using the facts we just grabbed as a variable using some regex
+  ansible.builtin.set_fact:
+    sub_id: "{{ current_sub_id.resourcegroups[0].id | regex_findall('^/[^/]+/([^/]*)') | list | join }}"
+
+- name: Generate temp file for the network acl rules
+  ansible.builtin.tempfile:
+  register: tmp_file_virtual_network_rules
+
+- name: create variables file for the network acls from a template
+  ansible.builtin.template:
+    src: "create-virtual-network-rules-variables.yml.j2"
+    dest: "{{ tmp_file_virtual_network_rules.path }}"
+
+- name: "Load the variables for the network acls from the template we just created"
+  ansible.builtin.include_vars:
+    file: "{{ tmp_file_virtual_network_rules.path }}"
+
+- name: Create a storage account
+  azure.azcollection.azure_rm_storageaccount:
+    resource_group: "{{ resource_group_name }}"
+    location: "{{ location }}"
+    name: "{{ storage_account_name }}"
+    https_only: "{{ sa_config.https_only }}"
+    kind: "{{ sa_config.kind }}"
+    type: "{{ sa_config.type }}"
+    tags: "{{ common_tags }}"
+    network_acls:
+      bypass: "{{ sa_config.network_acls.bypass }}"
+      default_action: "{{ sa_config.network_acls.default_action }}"
+      ip_rules: "{{ sa_ip_rules }}"
+      virtual_network_rules: "{{ sa_virtual_network_rules }}"
+
+- name: create Azure Files NFS file share using the REST API
+  azure.azcollection.azure_rm_resource:
+    api_version: "2022-09-01"
+    resource_group: "{{ resource_group_name }}"
+    provider: "Storage"
+    resource_type: "storageAccounts"
+    resource_name: "{{ storage_account_name }}"
+    idempotency: true
+    subresource:
+      - type: "fileServices/default/shares"
+        name: "{{ sa_config.share_name }}"
+    body:
+      location: "{{ location }}"
+      tags: "{{ common_tags }}"
+      properties:
+        enabledProtocols: "NFS"
+        tags: "{{ common_tags }}"
+
+- name: Create a private dns zone
+  azure.azcollection.azure_rm_privatednszone:
+    resource_group: "{{ resource_group_name }}"
+    name: "{{ sa_config.sa_zone_name }}"
+    tags: "{{ common_tags }}"
+
+- name: Create a virtual network link for the private dns zone
+  azure.azcollection.azure_rm_privatednszonelink:
+    resource_group: "{{ resource_group_name }}"
+    name: "{{ storage_account_name }}-link"
+    zone_name: "{{ sa_config.sa_zone_name }}"
+    virtual_network: "{{ virtual_network_name }}"
+    registration_enabled: "no"
+    state: "present"
+
+- name: Get info for the subnet
+  azure.azcollection.azure_rm_subnet_info:
+    resource_group: "{{ resource_group_name }}"
+    virtual_network_name: "{{ virtual_network_name }}"
+    name: "{{ subnet_for_endpoints }}"
+  register: sa_subnet_output
+
+- name: Get info on the storage account
+  azure.azcollection.azure_rm_storageaccount_info:
+    resource_group: "{{ resource_group_name }}"
+    name: "{{ storage_account_name }}"
+  register: storage_account_output
+
+- name: Create the private endpoint
+  azure.azcollection.azure_rm_privateendpoint:
+    resource_group: "{{ resource_group_name }}"
+    name: "{{ dict.private_endpoint }}-{{ storage_account_name }}"
+    private_link_service_connections:
+      - name: "{{ storage_account_name }}-private-link-service"
+        private_link_service_id: "{{ storage_account_output.storageaccounts[0].id }}"
+        group_ids:
+          - "file"
+    subnet:
+      id: "{{ sa_subnet_output.subnets[0].id }}"
+    tags: "{{ common_tags }}"
+
+- name: Create zone group for private endpoint
+  azure.azcollection.azure_rm_privateendpointdnszonegroup:
+    resource_group: "{{ resource_group_name }}"
+    name: "{{ storage_account_name }}-private-dns-group"
+    private_endpoint: "{{ dict.private_endpoint }}-{{ storage_account_name }}"
+    private_dns_zone_configs:
+      - name: "{{ storage_account_name }}-private-dns-config"
+        private_dns_zone: "{{ sa_config.sa_zone_name }}"

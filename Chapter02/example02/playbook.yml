@@ -1,0 +1,15 @@
+---
+- name: Ansible Infrastructure as Code example
+  hosts: localhost
+
+  tasks:
+    - name: Create an example resource group
+      azure.azcollection.azure_rm_resourcegroup:
+        name: "rg-example-uks"
+        location: "UK South"
+
+    - name: Create an example storage account
+      azure.azcollection.azure_rm_storageaccount:
+        resource_group: "rg-example-uks"
+        name: "saiacforbeg2022111534"
+        account_type: "Standard_GRS"

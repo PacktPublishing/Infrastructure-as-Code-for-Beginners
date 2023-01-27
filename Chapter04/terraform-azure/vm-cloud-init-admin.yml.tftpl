@@ -1,0 +1,54 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - software-properties-common
+  - wget
+  - curl
+  - nfs-common
+  - apache2
+  - php
+  - mysql-client
+  - libapache2-mod-php
+  - php-mysql
+  - php-cli
+  - php-curl
+  - php-gd
+  - php-mbstring
+  - php-xml
+  - php-xmlrpc
+  - php-soap
+  - php-intl
+  - php-zip
+
+runcmd:
+  # Mount the NFS share and add it to fstab
+  - sudo mount -t nfs ${tmpl_file_share} /var/www/html -o vers=4,minorversion=1,sec=sys
+  - echo "${tmpl_file_share} /var/www/html nfs vers=4,minorversion=1,sec=sys" | sudo tee --append /etc/fstab
+
+  # Install WordPress CLI (wp-cli)
+  - cd ~
+  - sudo curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+  - sudo chmod +x wp-cli.phar
+  - sudo mv wp-cli.phar /usr/local/bin/wp
+
+  # Set up web site directory, download and configure Wordpress
+  - cd /var/www/
+  - sudo mkdir .wp-cli
+  - sudo chown -R www-data:www-data .wp-cli
+  - sudo chmod 755 .wp-cli
+  - sudo chown -R www-data:www-data html
+  - sudo chmod 755 html
+  - cd html
+  - sudo rm index.html
+  - sudo -u www-data wp core download
+  - sudo -u www-data wp core config --dbname='${tmpl_database_name}' --dbuser='${tmpl_database_username}' --dbpass="${tmpl_database_password}" --dbhost='${tmpl_database_hostname}' --dbprefix='wp_'
+  - sudo chmod -R 755 /var/www/html/wp-content
+
+  # Install WordPress and set up admin user
+  - sudo -u www-data wp core install --url='${tmpl_wordpress_url}' --title='${tmpl_wp_title}' --admin_user='${tmpl_wp_admin_user}' --admin_password='${tmpl_wp_admin_password}' --admin_email='${tmpl_wp_admin_email}'
+
+  # Allow .htaccess files and restart Apache
+  - sudo echo -e "<Directory /var/www/html>\n    AllowOverride All\n</Directory>" >> /etc/apache2/sites-enabled/allow-htaccess.conf
+  - sudo a2enmod rewrite
+  - sudo service apache2 restart

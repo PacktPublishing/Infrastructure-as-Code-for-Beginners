@@ -1,0 +1,19 @@
+---
+
+- name: Deploy and configure the AWS Environment
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars_files:
+    - group_vars/aws.yml
+    - group_vars/common.yml
+
+  roles:
+    - roles/create-randoms
+    - roles/aws-network
+    - roles/aws-storage
+    - roles/aws-database
+    - roles/aws-vm-admin
+    - roles/aws-asg-web
+    - roles/output

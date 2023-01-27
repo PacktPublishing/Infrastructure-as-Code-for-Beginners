@@ -1,0 +1,40 @@
+---
+# tasks file for roles/aws-database
+
+- name: Add RDS subnet group
+  amazon.aws.rds_subnet_group:
+    region: "{{ region }}"
+    state: present
+    name: "{{ rds_db_instance_name }}"
+    description: "{{ dict.ansible_warning }}"
+    subnets:
+      - "{{ subnet_rds01.subnet.id }}"
+      - "{{ subnet_rds02.subnet.id }}"
+    tags:
+      Name: "{{ rds_db_instance_name }}"
+      Description: "{{ dict.ansible_warning }}"
+      Project: "{{ app.name }}"
+      Environment: "{{ app.env }}"
+      Deployed_by: "Ansible"
+  register: rds_subnet_group
+
+- name: Create the RDS database
+  amazon.aws.rds_instance:
+    region: "{{ region }}"
+    id: "{{ rds_db_instance_name }}"
+    db_instance_class: "{{ rds.db_instance_class }}"
+    engine: "{{ rds.engine }}"
+    engine_version: "{{ rds.engine_version }}"
+    allocated_storage: "{{ rds.allocated_storage }}"
+    username: "{{ rds.username  }}"
+    password: "{{ db_password }}"
+    db_name: "{{ rds.datatabase_name }}"
+    db_subnet_group_name: "{{ rds_subnet_group.subnet_group.name }}"
+    vpc_security_group_ids: ["{{ security_group_rds.group_id }}"]
+    tags:
+      Name: "{{ rds_db_instance_name }}"
+      Description: "{{ dict.ansible_warning }}"
+      Project: "{{ app.name }}"
+      Environment: "{{ app.env }}"
+      Deployed_by: "Ansible"
+  register: rds_database

@@ -1,0 +1,11 @@
+---
+- name: Ansible Infrastructure as Code example
+  hosts: localhost
+
+  tasks:
+    - name: Terminate the example resource group
+      azure.azcollection.azure_rm_resourcegroup:
+        name: "rg-example-uks"
+        location: "UK South"
+        state: absent
+        force_delete_nonempty: true

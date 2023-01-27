@@ -1,0 +1,93 @@
+---
+# tasks file for roles/azure-mysql
+
+- name: Create a private dns zone for the database server
+  azure.azcollection.azure_rm_privatednszone:
+    resource_group: "{{ resource_group_name }}"
+    name: "{{ database_config.db_zone_name }}"
+    tags: "{{ common_tags }}"
+
+- name: Create a virtual network link for the private dns zone
+  azure.azcollection.azure_rm_privatednszonelink:
+    resource_group: "{{ resource_group_name }}"
+    name: "{{ database_server_name }}-link"
+    zone_name: "{{ database_config.db_zone_name }}"
+    virtual_network: "{{ virtual_network_name }}"
+    registration_enabled: "no"
+    state: "present"
+
+- name: Get info for the prive dns zone
+  azure.azcollection.azure_rm_privatednszone_info:
+    resource_group: "{{ resource_group_name }}"
+    name: "{{ database_config.db_zone_name }}"
+  register: database_private_dns_zone_output
+
+- name: Get info for the subnet
+  azure.azcollection.azure_rm_subnet_info:
+    resource_group: "{{ resource_group_name }}"
+    virtual_network_name: "{{ virtual_network_name }}"
+    name: "{{ subnet_for_database }}"
+  register: database_subnet_output
+
+- name: Create an Azure Flexible Server for MySQL using the REST API
+  azure.azcollection.azure_rm_resource:
+    api_version: "2021-05-01"
+    resource_group: "{{ resource_group_name }}"
+    provider: "DBforMySQL"
+    resource_type: "flexibleServers"
+    resource_name: "{{ database_server_name }}"
+    body:
+      location: "{{ location }}"
+      properties:
+        administratorLogin: "{{ database_config.admin_username }}"
+        administratorLoginPassword: "{{ db_password }}"
+        Sku:
+          name: "{{ database_config.sku.name }}"
+          tier: "{{ database_config.sku.tier }}"
+        Network:
+          delegatedSubnetResourceId: "{{ database_subnet_output.subnets[0].id }}"
+          privateDnsZoneResourceId: "{{ database_private_dns_zone_output.privatednszones[0].id }}"
+        tags: "{{ common_tags }}"
+
+- name: Wait for Azure Flexible Server for MySQL to be ready
+  azure.azcollection.azure_rm_resource_info:
+    api_version: "2021-05-01"
+    resource_group: "{{ resource_group_name }}"
+    provider: "DBforMySQL"
+    resource_type: "flexibleServers"
+    resource_name: "{{ database_server_name }}"
+  register: database_wait_output
+  delay: 15
+  retries: 50
+  until: database_wait_output.response[0] is defined and database_wait_output.response[0].properties is defined and database_wait_output.response[0].properties.state == "Ready"
+
+- name: Turn off the require_secure_transport configuration
+  azure.azcollection.azure_rm_resource:
+    api_version: "2021-05-01"
+    resource_group: "{{ resource_group_name }}"
+    method: "PATCH"
+    provider: "DBforMySQL"
+    resource_type: "flexibleServers"
+    resource_name: "{{ database_server_name }}"
+    subresource:
+      - type: "configurations"
+        name: "require_secure_transport"
+    body:
+      properties:
+        value: "OFF"
+        source: "user-override"
+
+- name: Create the database
+  azure.azcollection.azure_rm_resource:
+    api_version: "2021-05-01"
+    resource_group: "{{ resource_group_name }}"
+    provider: "DBforMySQL"
+    resource_type: "flexibleServers"
+    resource_name: "{{ database_server_name }}"
+    subresource:
+      - type: "databases"
+        name: "{{ database_config.database_name }}"
+    body:
+      properties:
+        charset: "utf8"
+        collation: "utf8_general_ci"

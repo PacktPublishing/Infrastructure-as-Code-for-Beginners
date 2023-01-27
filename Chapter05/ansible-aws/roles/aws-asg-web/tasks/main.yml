@@ -1,0 +1,44 @@
+---
+# tasks file for roles/aws-asg-web
+
+- name: Generate temp web cloud-init file
+  ansible.builtin.tempfile:
+  register: tmp_file_create_cloud_init_web_task
+
+- name: Create the web cloud-init file from a template file
+  ansible.builtin.template:
+    src: "vm-cloud-init-web.yml.j2"
+    dest: "{{ tmp_file_create_cloud_init_web_task.path }}"
+
+- name: Create launch config
+  community.aws.autoscaling_launch_config:
+    name: "{{ lauch_configuration_name }}"
+    image_id: "{{ ami.image_id }}"
+    region: "{{ region }}"
+    security_groups: "{{ security_group_web.group_name }}"
+    instance_type: "{{ ec2.instance_type }}"
+    assign_public_ip: "{{ ec2.public_ip }}"
+    user_data: "{{ lookup('file', tmp_file_create_cloud_init_web_task.path) }}"
+
+- name: Create the Auto Scaling Group
+  amazon.aws.autoscaling_group:
+    name: "{{ asg_name }}"
+    region: "{{ region }}"
+    target_group_arns:
+      - "{{ alb_target_group.target_group_arn }}"
+    availability_zones:
+      - "{{ zones.availability_zones[0].zone_name }}"
+      - "{{ zones.availability_zones[1].zone_name }}"
+    launch_config_name: "{{ lauch_configuration_name }}"
+    min_size: "{{ ec2.asg.min_size }}"
+    max_size: "{{ ec2.asg.max_size }}"
+    desired_capacity: "{{ ec2.asg.desired_capacity }}"
+    vpc_zone_identifier:
+      - "{{ subnet_web01.subnet.id }}"
+      - "{{ subnet_web02.subnet.id }}"
+    tags:
+      - Name: "{{ asg_name }}"
+      - Description: "{{ dict.ansible_warning }}"
+      - Project: "{{ app.name }}"
+      - Environment: "{{ app.env }}"
+      - Deployed_by: "Ansible"

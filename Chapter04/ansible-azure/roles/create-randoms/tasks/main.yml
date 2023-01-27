@@ -1,0 +1,21 @@
+---
+# tasks file for roles/create-randoms
+
+- name: Check if the file secrets.yml exists
+  ansible.builtin.stat:
+    path: "group_vars/secrets.yml"
+  register: secrets_file
+
+# - name: print the secrets_file variable
+#   ansible.builtin.debug:
+#     msg: "{{ secrets_file }}"
+
+- name: Generate the secrets.yml file using a template file if not exists
+  ansible.builtin.template:
+    src: "secrets.yml.j2"
+    dest: "group_vars/secrets.yml"
+  when: secrets_file.stat.exists == false
+
+- name: Load the variables defined in the secrets.yml file
+  ansible.builtin.include_vars:
+    file: "group_vars/secrets.yml"

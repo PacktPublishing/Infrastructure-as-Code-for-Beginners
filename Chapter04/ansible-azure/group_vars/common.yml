@@ -1,0 +1,18 @@
+---
+# Dictionary
+##################################################
+dict:
+  ansible_warning: "Resource managed by Ansible"
+  availability_set: "as"
+  database_server: "mysql"
+  load_balancer: "lb"
+  network_interface: "nic"
+  nsg: "nsg"
+  private_endpoint: "pe"
+  public_ip: "pip"
+  resource_group: "rg"
+  scale_set: "vmss"
+  storage_account: "sa"
+  subnet: "snet"
+  virtual_machine: "vm"
+  virtualnetwork: "vnet"

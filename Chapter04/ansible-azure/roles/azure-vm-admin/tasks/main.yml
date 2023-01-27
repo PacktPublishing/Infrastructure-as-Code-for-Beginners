@@ -1,0 +1,51 @@
+---
+# tasks file for roles/azure-vm-admin
+
+- name: Create the network interface for the admin vm
+  azure.azcollection.azure_rm_networkinterface:
+    resource_group: "{{ resource_group_name }}"
+    location: "{{ location }}"
+    name: "{{ dict.network_interface }}-{{ vm_name }}"
+    virtual_network: "{{ virtual_network_name }}"
+    subnet: "{{ subnet_for_vms }}"
+    security_group: "{{ dict.nsg }}-{{ app.name }}-{{app.env}}-{{ app.location_short }}"
+    ip_configurations:
+      - name: "{{ vm_name }}-ipcfg"
+        primary: true
+        load_balancer_backend_address_pools:
+          - name: "{{ load_balancer_name }}-backend-address-pool"
+            load_balancer: "{{ load_balancer_name }}"
+    tags: "{{ common_tags }}"
+
+- name: Get facts for the load-balancer Public IP
+  azure.azcollection.azure_rm_publicipaddress_info:
+    resource_group: "{{ resource_group_name }}"
+    name: "pip-{{ load_balancer_name }}"
+  register: load_balancer_public_ip_output
+
+- name: Generate temp admin cloud-init file
+  ansible.builtin.tempfile:
+  register: tmp_file_create_cloud_init_admin_task
+
+- name: Create thw admin cloud-init file from a template file
+  ansible.builtin.template:
+    src: "vm-cloud-init-admin.yml.j2"
+    dest: "{{ tmp_file_create_cloud_init_admin_task.path }}"
+
+- name: Create the admin virtual machine
+  azure.azcollection.azure_rm_virtualmachine:
+    resource_group: "{{ resource_group_name }}"
+    name: "{{ vm_name }}"
+    admin_username: "{{ vm_config.admin_username }}"
+    admin_password: "{{ vm_password }}"
+    ssh_password_enabled: "{{ vm_config.ssh_password_enabled }}"
+    vm_size: "{{ vm_config.vm_size }}"
+    managed_disk_type: "{{ vm_config.disk.managed_disk_type }}"
+    network_interfaces: "{{ dict.network_interface }}-{{ vm_name }}"
+    custom_data: "{{ lookup('file', '{{ tmp_file_create_cloud_init_admin_task.path }}') }}"
+    image:
+      offer: "{{ vm_config.image.offer }}"
+      publisher: "{{ vm_config.image.publisher }}"
+      sku: "{{ vm_config.image.sku }}"
+      version: "{{ vm_config.image.version }}"
+    tags: "{{ common_tags }}"

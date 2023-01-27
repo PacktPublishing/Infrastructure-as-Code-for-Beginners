@@ -1,0 +1,54 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - software-properties-common
+  - wget
+  - curl
+  - nfs-common
+  - apache2
+  - php
+  - mysql-client
+  - libapache2-mod-php
+  - php-mysql
+  - php-cli
+  - php-curl
+  - php-gd
+  - php-mbstring
+  - php-xml
+  - php-xmlrpc
+  - php-soap
+  - php-intl
+  - php-zip
+
+runcmd:
+  # Allow .htaccess files and restart Apache
+  - sudo echo -e "<Directory /var/www/html>\n    AllowOverride All\n</Directory>" >> /etc/apache2/sites-enabled/allow-htaccess.conf
+  - sudo a2enmod rewrite
+  - sudo service apache2 restart
+
+  # Mount the NFS share and add it to fstab
+  - until nc -vzw 2 {{ efs.efs.filesystem_address | regex_replace("[^A-Za-z0-9.-]", "") }} 2049; do sleep 2; done; mount -t nfs4 {{ efs.efs.filesystem_address }} /var/www/html -o vers=4,minorversion=1,sec=sys
+  - echo "{{ efs.efs.filesystem_address }} /var/www/html nfs4 vers=4,minorversion=1,sec=sys" | sudo tee --append /etc/fstab
+
+  # Install WordPress CLI (wp-cli)
+  - cd ~
+  - sudo curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+  - sudo chmod +x wp-cli.phar
+  - sudo mv wp-cli.phar /usr/local/bin/wp
+
+  # Set up web site directory, download and configure Wordpress
+  - cd /var/www/
+  - sudo mkdir .wp-cli
+  - sudo chown -R www-data:www-data .wp-cli
+  - sudo chmod 755 .wp-cli
+  - sudo chown -R www-data:www-data html
+  - sudo chmod 755 html
+  - cd html
+  - sudo rm index.html
+  - sudo -u www-data wp core download
+  - sudo -u www-data wp core config --dbname='{{ rds.datatabase_name }}' --dbuser='{{ rds.username }}' --dbpass="{{ db_password }}" --dbhost='{{ rds_database.endpoint.address }}' --dbprefix='wp_'
+  - sudo chmod -R 755 /var/www/html/wp-content
+
+  # Install WordPress and set up admin user
+  - sudo -u www-data wp core install --url='{{ alb.dns_name }}' --title='{{ wordpress.wp_title }}' --admin_user='{{ wordpress.wp_admin_user }}' --admin_password='{{ wp_password }}' --admin_email='{{ wordpress.wp_admin_email }}'

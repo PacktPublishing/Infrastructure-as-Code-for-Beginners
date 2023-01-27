@@ -1,0 +1,168 @@
+---
+# Application and basicAzure Resource Configuration
+##################################################
+
+app:
+  name: "iac-wordpress" # don't get too creative
+  shortname: "iacwp" # all lower-case, all one word
+  location: "westeurope" # loction of where the resources are to be created
+  location_short: "euw" # short name for the location
+  env: "prod" # enviroment tag for the app
+
+common_tags:
+  "project": "{{ app.name }}"
+  "environment": "{{ app.env }}"
+  "deployed_by": "ansible"
+
+wordpress:
+  wp_title: "IAC WordPress"
+  wp_admin_user: "admin"
+  wp_admin_email: "test@test.com"
+
+# Resource names
+##################################################
+
+resource_group_name: "{{ dict.resource_group }}-{{ app.name }}-{{app.env}}-{{ app.location_short }}"
+virtual_network_name: "{{ dict.virtualnetwork }}-{{ app.name }}-{{app.env}}-{{ app.location_short }}"
+load_balancer_name: "{{ dict.load_balancer }}-{{ app.name }}-{{app.env}}-{{ app.location_short }}"
+storage_account_name: "{{ dict.storage_account }}{{ app.shortname }}{{ short_random_hash }}"
+database_server_name: "{{ dict.database_server }}-{{ app.name }}-{{ short_random_hash }}-{{app.env}}-{{ app.location_short }}"
+vm_name: "{{ dict.virtual_machine }}-admin-{{ app.name }}-{{app.env}}-{{ app.location_short }}"
+vmss_name: "{{ dict.scale_set }}-web-{{ app.name }}-{{app.env}}-{{ app.location_short }}"
+
+# Virtual network
+##################################################
+
+vnet_config:
+  cidr_block: "10.0.0.0/24"
+  subnets:
+    - {
+        name: "{{ dict.subnet }}-vms-{{ app.name }}-{{app.env}}-{{ app.location_short }}",
+        subnet: "10.0.0.0/27",
+        private: true,
+        service_endpoints: "Microsoft.Storage",
+      }
+    - {
+        name: "{{ dict.subnet }}-endpoints-{{ app.name }}-{{app.env}}-{{ app.location_short }}",
+        subnet: "10.0.0.32/27",
+        private: true,
+        service_endpoints: "Microsoft.Storage",
+      }
+    - {
+        name: "{{ dict.subnet }}-database-{{ app.name }}-{{app.env}}-{{ app.location_short }}",
+        subnet: "10.0.0.64/27",
+        private: true,
+        service_endpoints: "Microsoft.Storage",
+        service_delegation_name: "fs",
+        service_delegation: "Microsoft.DBforMySQL/flexibleServers",
+        service_delegation_action: "Microsoft.Network/virtualNetworks/subnets/join/action",
+      }
+
+subnet_for_vms: "{{ dict.subnet }}-vms-{{ app.name }}-{{app.env}}-{{ app.location_short }}"
+subnet_for_endpoints: "{{ dict.subnet }}-endpoints-{{ app.name }}-{{app.env}}-{{ app.location_short }}"
+subnet_for_database: "{{ dict.subnet }}-database-{{ app.name }}-{{app.env}}-{{ app.location_short }}"
+
+trusted_ips:
+  - ""
+
+dynamic_ips:
+  - "{{ your_public_ip }}" # The IP address of whomever is running Ansible
+
+nsg_config:
+  - name: "{{ dict.nsg }}-{{ app.name }}-{{app.env}}-{{ app.location_short }}"
+    rules:
+      - {
+          name: "allowHTTP",
+          description: "{{ dict.ansible_warning }}",
+          protocol: "Tcp",
+          destination_port: "80",
+          public: true,
+          access: "Allow",
+          priority: "100",
+          direction: "Inbound",
+        }
+      - {
+          name: "allowSSH",
+          description: "{{ dict.ansible_warning }}",
+          protocol: "Tcp",
+          destination_port: "22",
+          public: false,
+          ips: "{{ trusted_ips|select() + dynamic_ips  }}",
+          access: "Allow",
+          priority: "150",
+          direction: "Inbound",
+        }
+
+load_balancer_config:
+  name: "{{ app.name }}-{{ dict.load_balancer }}"
+  public_ip_name: "{{ app.name }}-{{ dict.load_balancer }}-{{ dict.public_ip }}"
+  frontend_ip_configurations:
+    - name: "{{ app.name }}-fe-ip-cfg01"
+      public_ip_address: "{{ app.name }}-{{ dict.load_balancer }}-{{ dict.public_ip }}"
+  backend_address_pools:
+    - name: "{{ app.name }}-be-addr-pool01"
+  probes:
+    - name: "{{ app.name }}-prob01"
+      port: "80"
+  inbound_nat_pools:
+    - name: "{{ app.name }}-nat-rule01"
+      frontend_ip_configuration_name: "{{ app.name }}-fe-ip-cfg01"
+      protocol: "Tcp"
+      frontend_port_range_start: "2220"
+      frontend_port_range_end: "2229"
+      backend_port: "22"
+  load_balancing_rules:
+    - name: "{{ app.name }}-lb-rule01"
+      frontend_ip_configuration: "{{ app.name }}-fe-ip-cfg01"
+      backend_address_pool: "{{ app.name }}-be-addr-pool01"
+      frontend_port: "80"
+      backend_port: "80"
+      probe: "{{ app.name }}-prob01"
+
+# Storeage Account
+##################################################
+
+sa_config:
+  kind: "FileStorage"
+  type: "Premium_LRS"
+  https_only: "false"
+  share_name: "wordpress"
+  network_acls:
+    bypass: "AzureServices,Metrics"
+    default_action: "Deny"
+    ip_rules: ["{{ trusted_ips|select() + dynamic_ips  }}"]
+  sa_zone_name: "privatelink.file.core.windows.net"
+
+# Azure MySQL
+##################################################
+
+database_config:
+  admin_username: "wordpress"
+  database_name: "wordpress"
+  sku:
+    name: "Standard_B1ms"
+    tier: "Burstable"
+  db_zone_name: "mysql.database.azure.com"
+
+# Virtual Machine
+##################################################
+
+vm_config:
+  admin_username: "adminuser"
+  ssh_password_enabled: "true"
+  vm_size: "Standard_B1ms"
+  image:
+    publisher: "Canonical"
+    offer: "0001-com-ubuntu-server-focal"
+    sku: "20_04-LTS"
+    version: "latest"
+  vmss:
+    capacity: "2"
+    upgrade_policy: "Manual"
+  disk:
+    managed_disk_type: "Premium_LRS"
+  upgrade_policy: "Automatic"
+
+# Set some defaults using the details defined up top
+##################################################
+location: "{{ app.location }}"

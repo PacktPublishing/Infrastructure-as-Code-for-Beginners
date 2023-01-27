@@ -1,0 +1,66 @@
+---
+# tasks file for roles/aws-vm-admin
+
+- name: Generate temp admin cloud-init file
+  ansible.builtin.tempfile:
+  register: tmp_file_create_cloud_init_admin_task
+
+- name: Create thw admin cloud-init file from a template file
+  ansible.builtin.template:
+    src: "vm-cloud-init-admin.yml.j2"
+    dest: "{{ tmp_file_create_cloud_init_admin_task.path }}"
+
+- name: gather information about Ubuntu AMIs published by Canonical (099720109477)
+  amazon.aws.ec2_ami_info:
+    region: "{{ region }}"
+    owners: 099720109477
+    filters:
+      name: "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"
+      virtualization-type: "hvm"
+  register: ubuntu_ami_info
+
+- name: filter the list of AMIs to find the latest one
+  set_fact:
+    ami: "{{ ubuntu_ami_info.images | sort(attribute='creation_date') | last }}"
+
+- name: create the admin ec2 instance
+  amazon.aws.ec2_instance:
+    name: "{{ ec2_instance_name_admin }}"
+    region: "{{ region }}"
+    vpc_subnet_id: "{{ subnet_web01.subnet.id }}"
+    instance_type: "{{ ec2.instance_type }}"
+    security_group: "{{ security_group_web.group_name }}"
+    network:
+      assign_public_ip: "{{ ec2.public_ip }}"
+    image_id: "{{ ami.image_id }}"
+    user_data: "{{ lookup('file', tmp_file_create_cloud_init_admin_task.path) }}"
+    tags:
+      Name: "{{ ec2_instance_name_admin }}"
+      Description: "{{ dict.ansible_warning }}"
+      Project: "{{ app.name }}"
+      Environment: "{{ app.env }}"
+      Deployed_by: "Ansible"
+  register: ec2_instance_admin
+
+- name: Get information about the admin EC2 instance to see if its running
+  amazon.aws.ec2_instance_info:
+    region: "{{ region }}"
+    filters:
+      instance-id: "{{ ec2_instance_admin.instances[0].instance_id }}"
+  register: admin_ec2_instance_state
+  delay: 5
+  retries: 50
+  until: admin_ec2_instance_state.instances[0].state.name == "running"
+
+- name: Update the ELB target group
+  community.aws.elb_target_group:
+    name: "{{ alb_target_group_name }}"
+    protocol: "HTTP"
+    port: "80"
+    vpc_id: "{{ vpc.vpc.id }}"
+    region: "{{ region }}"
+    state: "present"
+    modify_targets: true
+    targets:
+      - Id: "{{ ec2_instance_admin.instances[0].instance_id }}"
+        Port: 80

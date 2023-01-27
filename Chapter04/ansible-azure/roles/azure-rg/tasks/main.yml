@@ -1,0 +1,8 @@
+---
+# tasks file for roles/azure-rg
+
+- name: Create the resource group
+  azure_rm_resourcegroup:
+    name: "{{ resource_group_name }}"
+    location: "{{ location }}"
+    tags: "{{ common_tags }}"

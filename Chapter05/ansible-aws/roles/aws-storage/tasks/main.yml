@@ -1,0 +1,20 @@
+---
+# tasks file for roles/aws-storage
+
+- name: Create the EFS resource
+  community.aws.efs:
+    name: "{{ efs_name }}"
+    state: present
+    region: "{{ region }}"
+    targets:
+      - subnet_id: "{{ subnet_web01.subnet.id }}"
+        security_groups: ["{{ security_group_efs.group_id }}"]
+      - subnet_id: "{{ subnet_web02.subnet.id }}"
+        security_groups: ["{{ security_group_efs.group_id }}"]
+    tags:
+      Name: "{{ efs_name }}"
+      Description: "{{ dict.ansible_warning }}"
+      Project: "{{ app.name }}"
+      Environment: "{{ app.env }}"
+      Deployed_by: "Ansible"
+  register: efs

@@ -1,0 +1,13 @@
+---
+
+sa_virtual_network_rules:
+{% for item in vnet_config.subnets %}
+  - id: "/subscriptions/{{ sub_id }}/resourceGroups/{{ resource_group_name }}/providers/Microsoft.Network/virtualNetworks/{{ virtual_network_name }}/subnets/{{ item.name }}"
+    action: "Allow"
+{% endfor %}
+
+sa_ip_rules:
+{% for item in sa_config.network_acls.ip_rules | flatten | list %}
+  - value: "{{ item }}"
+    action: "Allow"
+{% endfor %}

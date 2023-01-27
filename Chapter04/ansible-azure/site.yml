@@ -1,0 +1,20 @@
+---
+
+- name: Deploy and configure the Azure Environment
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars_files:
+    - group_vars/azure.yml
+    - group_vars/common.yml
+
+  roles:
+    - roles/create-randoms
+    - roles/azure-rg
+    - roles/azure-virtualnetwork
+    - roles/azure-storage
+    - roles/azure-mysql
+    - roles/azure-vm-admin
+    - roles/azure-vmss-web
+    - roles/output

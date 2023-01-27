@@ -1,0 +1,36 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - software-properties-common
+  - wget
+  - curl
+  - nfs-common
+  - apache2
+  - php
+  - mysql-client
+  - libapache2-mod-php
+  - php-mysql
+  - php-cli
+  - php-curl
+  - php-gd
+  - php-mbstring
+  - php-xml
+  - php-xmlrpc
+  - php-soap
+  - php-intl
+  - php-zip
+
+runcmd:
+  # Mount the NFS share and add it to fstab
+  - sudo mount -t nfs ${tmpl_file_share} /var/www/html -o vers=4,minorversion=1,sec=sys
+  - echo "${tmpl_file_share} /var/www/html nfs vers=4,minorversion=1,sec=sys" | sudo tee --append /etc/fstab
+
+  # Set up web site directory
+  - cd /var/www/
+  - sudo chmod 755 html
+
+  # Allow .htaccess files and restart Apache
+  - sudo echo -e "<Directory /var/www/html>\n    AllowOverride All\n</Directory>" >> /etc/apache2/sites-enabled/allow-htaccess.conf
+  - sudo a2enmod rewrite
+  - sudo service apache2 restart

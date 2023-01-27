@@ -1,0 +1,17 @@
+---
+# Dictionary
+##################################################
+dict:
+  ansible_warning: "Resource managed by Ansible"
+  vpc: "vpc"
+  subnet: "subnet"
+  igw: "igw"
+  route_table: "route-table"
+  security_group: "security-group"
+  application_load_balancer: "lb"
+  application_load_balancer_target_group: "lbtg"
+  elastic_file_system: "efs"
+  rds_database: "rds"
+  ec2_instance: "ec2"
+  auto_scaling_group: "asg"
+  lauch_configuration: "lc"

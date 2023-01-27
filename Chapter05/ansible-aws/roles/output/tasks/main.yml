@@ -1,0 +1,9 @@
+---
+# tasks file for roles/output
+
+- name: Output details on the deployment
+  ansible.builtin.debug:
+    msg:
+      - "Wordpress Admin Username: {{ wordpress.wp_admin_user }}"
+      - "Wordpress Admin Password: {{ wp_password }}"
+      - "Wordpress URL: http://{{ alb.dns_name }}/"
