@@ -4,7 +4,6 @@
 
 app:
   name: "iac-wordpress" # don't get too creative
-  shortname: "iacwp" # all lower-case, all one word
   location: "us-east-1" # loction of where the resources are to be created
   env: "prod" # enviroment tag for the app
 
