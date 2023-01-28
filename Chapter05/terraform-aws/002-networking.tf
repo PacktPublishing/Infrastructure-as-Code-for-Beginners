@@ -85,7 +85,6 @@ resource "aws_security_group" "sg_vms" {
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    # cidr_blocks = setunion(var.network_trusted_ips, ["${jsondecode(data.http.current_ip.response_body).ip}/32"])
   }
   egress {
     from_port   = 0
