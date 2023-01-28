@@ -26,6 +26,7 @@
         desired_capacity: "{{ ec2.asg.desired_capacity }}"
         suspend_processes: "Terminate"
         state: absent
+        wait_timeout: 3600
       when: asgs.results | length > 0
 
     - name: Delete the launch config

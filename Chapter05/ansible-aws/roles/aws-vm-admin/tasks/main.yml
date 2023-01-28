@@ -16,7 +16,7 @@
     owners: "{{ ec2.ami.owners }}"
     filters:
       name: "{{ ec2.ami.filters.name }}"
-      virtualization-type: "{{ ec2.ami.filters.virtualization-type }}"
+      virtualization-type: "{{ ec2.ami.filters.virtualization_type }}"
   register: ubuntu_ami_info
 
 - name: filter the list of AMIs to find the latest one
