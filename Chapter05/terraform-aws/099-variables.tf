@@ -145,3 +145,27 @@ variable "instance_type" {
   default     = "t2.micro"
 }
 
+variable "ami_most_recent" {
+  description = "should the most recent version of the AMI be used?"
+  type        = bool
+  default     = true
+}
+
+variable "ami_filter_name" {
+  description = "Which AMI should be used?"
+  type        = string
+  default     = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"
+}
+
+
+variable "ami_filter_virtualization_type" {
+  description = "What type of virtualiztion should we filter on?"
+  type = string
+  default = "hvm"
+}
+
+variable "ami_owners" {
+  description = "Who owns the AMI we want to use?"
+  type        = string
+  default     = "099720109477" # Canonical
+}

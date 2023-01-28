@@ -1,17 +1,17 @@
 data "aws_ami" "ubuntu_admin" {
-  most_recent = true
+  most_recent = var.ami_most_recent
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+    values = [ var.ami_filter_name ]
   }
 
   filter {
     name   = "virtualization-type"
-    values = ["hvm"]
+    values = [ var.ami_filter_virtualization_type ]
   }
 
-  owners = ["099720109477"] # Canonical
+  owners = [ var.ami_owners ] 
 }
 
 resource "random_password" "wordpress_admin_password" {
