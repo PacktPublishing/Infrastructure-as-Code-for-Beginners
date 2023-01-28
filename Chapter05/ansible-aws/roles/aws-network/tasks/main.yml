@@ -102,9 +102,6 @@
       Project: "{{ app.name }}"
       Environment: "{{ app.env }}"
       Deployed_by: "Ansible"
-  loop:
-    - "{{ subnet_web01 }}"
-    - "{{ subnet_web02 }}"
   register: route_table
 
 - name: Create the Web security group

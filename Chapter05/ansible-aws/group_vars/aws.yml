@@ -59,6 +59,11 @@ ec2:
     min_size: 1
     max_size: 3
     desired_capacity: 2
+  ami:
+    owners: "099720109477"
+    filters:
+      name: "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"
+      virtualization-type: "hvm"
 
 # Set some defaults using the details defined up top
 ##################################################

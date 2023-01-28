@@ -5,18 +5,18 @@
   ansible.builtin.tempfile:
   register: tmp_file_create_cloud_init_admin_task
 
-- name: Create thw admin cloud-init file from a template file
+- name: Create the admin cloud-init file from a template file
   ansible.builtin.template:
     src: "vm-cloud-init-admin.yml.j2"
     dest: "{{ tmp_file_create_cloud_init_admin_task.path }}"
 
-- name: gather information about Ubuntu AMIs published by Canonical (099720109477)
+- name: gather information about AMIs with the specified filters
   amazon.aws.ec2_ami_info:
     region: "{{ region }}"
-    owners: 099720109477
+    owners: "{{ ec2.ami.owners }}"
     filters:
-      name: "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"
-      virtualization-type: "hvm"
+      name: "{{ ec2.ami.filters.name }}"
+      virtualization-type: "{{ ec2.ami.filters.virtualization-type }}"
   register: ubuntu_ami_info
 
 - name: filter the list of AMIs to find the latest one
