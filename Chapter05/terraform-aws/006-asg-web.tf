@@ -1,22 +1,6 @@
-data "aws_ami" "ubuntu_web" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  owners = ["099720109477"] # Canonical
-}
-
 resource "aws_launch_configuration" "web_launch_configuration" {
   name_prefix                 = "${var.name}-${var.environment_type}-alc-web-"
-  image_id                    = data.aws_ami.ubuntu_web.id
+  image_id                    = data.aws_ami.ubuntu_admin.id
   instance_type               = var.instance_type
   associate_public_ip_address = true
   security_groups             = [aws_security_group.sg_vms.id]

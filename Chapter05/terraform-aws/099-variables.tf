@@ -160,8 +160,8 @@ variable "ami_filter_name" {
 
 variable "ami_filter_virtualization_type" {
   description = "What type of virtualiztion should we filter on?"
-  type = string
-  default = "hvm"
+  type        = string
+  default     = "hvm"
 }
 
 variable "ami_owners" {

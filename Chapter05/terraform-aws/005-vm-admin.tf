@@ -1,17 +1,15 @@
 data "aws_ami" "ubuntu_admin" {
   most_recent = var.ami_most_recent
-
+  owners      = [var.ami_owners]
   filter {
     name   = "name"
-    values = [ var.ami_filter_name ]
+    values = [var.ami_filter_name]
   }
 
   filter {
     name   = "virtualization-type"
-    values = [ var.ami_filter_virtualization_type ]
+    values = [var.ami_filter_virtualization_type]
   }
-
-  owners = [ var.ami_owners ] 
 }
 
 resource "random_password" "wordpress_admin_password" {
