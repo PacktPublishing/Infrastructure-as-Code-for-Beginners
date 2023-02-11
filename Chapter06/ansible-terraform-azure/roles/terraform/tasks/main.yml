@@ -1,12 +1,12 @@
 ---
 # tasks file for roles/terraform
 
-- name: Check if the file secrets.yml exists
+- name: Check if we have an SSH keypair
   ansible.builtin.stat:
     path: "{{ ssh.private_key_path }}"
   register: key_file
 
-- name: Generate an OpenSSH keypair
+- name: Generate an OpenSSH keypair if needed
   community.crypto.openssh_keypair:
     path: "{{ ssh.private_key_path }}"
   when: key_file.stat.exists == false
@@ -41,3 +41,4 @@
     ansible_ssh_private_key_file: "{{ ssh.private_key_path }}"
     ansible_ssh_user: "{{ azure.vm_admin_username }}"
     the_public_ip: "{{ terraform_output.outputs.public_ip.value }}"
+    the_vm_name: "{{ terraform_output.outputs.vm_name.value }}"
