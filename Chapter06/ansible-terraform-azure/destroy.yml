@@ -1,0 +1,27 @@
+---
+- name: Destroy the Azure Environment using Terraform
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars_files:
+    - group_vars/app.yml
+
+  tasks:
+    - name: Destory all Azure resources managed by Terraform
+      community.general.terraform:
+        project_path: "./terraform"
+        state: "absent"
+        complex_vars: true
+        variables:
+          name: "{{ app.name }}"
+          region: "{{ azure.region }}"
+          address_space: "{{ azure.vnet_address_space }}"
+          vm_admin_username: "{{ azure.vm_admin_username }}"
+          vm_ssh_public_key: "{{ lookup('file', '{{ ssh.public_key_path }}') }}"
+          tags:
+            app: "{{ app.name }}"
+            env: "{{ app.env }}"
+            deployed_by: "{{ app.deployed_by }}"
+        force_init: true
+      register: terraform_output

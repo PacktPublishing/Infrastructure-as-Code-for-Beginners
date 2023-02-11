@@ -1,0 +1,34 @@
+---
+
+- name: Deploy and configure the Azure Environment using Terraform
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars_files:
+    - group_vars/app.yml
+
+  roles:
+    - roles/terraform
+
+- name: Ensure that Virtual Machines are accessible
+  hosts: azure_vms
+  gather_facts: no
+  tasks:
+    - name: wait for SSH to become accessible
+      wait_for:
+        host: "{{ ansible_host }}"
+        port: "{{ ansible_port }}"
+      delegate_to: localhost
+
+- name: Deploy the application to the Azure Environment
+  hosts: azure_vms
+  gather_facts: no
+  become: yes
+  become_method: sudo
+
+  vars_files:
+    - group_vars/app.yml
+
+  roles:
+    - roles/application

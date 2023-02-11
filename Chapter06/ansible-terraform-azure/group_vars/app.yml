@@ -1,0 +1,23 @@
+---
+app:
+  name: "iac-ansible" # don't get too creative
+  location: "uksouth" # loction of where the resources are to be created
+  env: "prod" # enviroment tag for the app
+  deployed_by: "terraform" # what deployed the app
+  index_file_path: "/var/www/html/index.nginx-debian.html"
+
+page:
+  title: "Infrastructure as Code for Beginners"
+  body: "This Virtual Machine was lauced using Terraform and Ansible"
+
+azure:
+  vnet_address_space: "10.0.0.0/24"
+  region: "{{ app.location }}"
+  vm_admin_username: "adminuser"
+
+ssh:
+  private_key_path: "key/id_rsa"
+  public_key_path: "key/id_rsa.pub"
+  port_number: "22"
+
+host_group_name: "vmgroup"

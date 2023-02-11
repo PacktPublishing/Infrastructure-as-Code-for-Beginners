@@ -1,0 +1,43 @@
+---
+# tasks file for roles/terraform
+
+- name: Check if the file secrets.yml exists
+  ansible.builtin.stat:
+    path: "{{ ssh.private_key_path }}"
+  register: key_file
+
+- name: Generate an OpenSSH keypair
+  community.crypto.openssh_keypair:
+    path: "{{ ssh.private_key_path }}"
+  when: key_file.stat.exists == false
+
+- name: Launch an Azure Virtal Machine instance and supporting resources using Terraform
+  community.general.terraform:
+    project_path: "./terraform"
+    state: "present"
+    complex_vars: true
+    variables:
+      name: "{{ app.name }}"
+      region: "{{ azure.region }}"
+      address_space: "{{ azure.vnet_address_space }}"
+      vm_admin_username: "{{ azure.vm_admin_username }}"
+      vm_ssh_public_key: "{{ lookup('file', '{{ ssh.public_key_path }}') }}"
+      tags:
+        app: "{{ app.name }}"
+        env: "{{ app.env }}"
+        deployed_by: "{{ app.deployed_by }}"
+    force_init: true
+  register: terraform_output
+
+- name: Add the Virtual Machine to the vmgroup group
+  ansible.builtin.add_host:
+    groups: "{{ host_group_name }}"
+    hostname: "{{ terraform_output.outputs.vm_name.value }}"
+    ansible_host: "{{ terraform_output.outputs.public_ip.value }}"
+    ansible_port: "{{ ssh.port_number }}"
+
+- name: set some facts based on the virtual machine we just launched using Terraform
+  ansible.builtin.set_fact:
+    ansible_ssh_private_key_file: "{{ ssh.private_key_path }}"
+    ansible_ssh_user: "{{ azure.vm_admin_username }}"
+    the_public_ip: "{{ terraform_output.outputs.public_ip.value }}"

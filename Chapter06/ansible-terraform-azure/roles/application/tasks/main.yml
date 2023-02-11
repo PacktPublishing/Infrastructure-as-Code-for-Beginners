@@ -1,0 +1,29 @@
+---
+- name: Set some facts based on the virtual machine we just launched using Terraform
+  ansible.builtin.set_fact:
+    ansible_ssh_private_key_file: "{{ ssh.private_key_path }}"
+    ansible_ssh_user: "{{ azure.vm_admin_username }}"
+
+- name: Run apt-get update
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install packages
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: latest
+  with_items: "{{ packages }}"
+
+- name: Copy the index file to the web server
+  ansible.builtin.template:
+    src: "index.html.j2"
+    dest: "{{ app.index_file_path }}"
+    owner: "www-data"
+    group: "www-data"
+    mode: "0644"
+
+- name: Output details on the deployment
+  ansible.builtin.debug:
+    msg:
+      - "Application URL: http://{{ hostvars['localhost']['the_public_ip'] }}/"
