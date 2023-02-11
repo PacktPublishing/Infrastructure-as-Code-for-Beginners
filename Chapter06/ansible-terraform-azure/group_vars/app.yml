@@ -8,7 +8,7 @@ app:
 
 page:
   title: "Infrastructure as Code for Beginners"
-  body: "This Virtual Machine was lauced using Terraform and Ansible"
+  body: "This Virtual Machine was launched using Terraform and Ansible"
 
 azure:
   vnet_address_space: "10.0.0.0/24"
