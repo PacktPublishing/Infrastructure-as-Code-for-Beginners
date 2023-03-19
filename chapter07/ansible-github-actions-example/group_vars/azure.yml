@@ -1,0 +1,53 @@
+---
+# Application and basicAzure Resource Configuration
+##################################################
+
+app:
+  name: "ansible-github-actions" # don't get too creative
+  shortname: "ansghact" # all lower-case, all one word
+  location: "uksouth" # loction of where the resources are to be created
+  location_short: "uks" # short name for the location
+  env: "prod" # enviroment tag for the app
+
+common_tags:
+  "project": "{{ app.name }}"
+  "environment": "{{ app.env }}"
+  "deployed_by": "ansible"
+
+# Resource names
+##################################################
+
+resource_group_name: "{{ dict.resource_group }}-{{ app.name }}-{{app.env}}-{{ app.location_short }}"
+virtual_network_name: "{{ dict.virtualnetwork }}-{{ app.name }}-{{app.env}}-{{ app.location_short }}"
+
+# Virtual network
+##################################################
+
+vnet_config:
+  cidr_block: "10.0.0.0/24"
+  subnets:
+    - {
+        name: "{{ dict.subnet }}-vms-{{ app.name }}-{{app.env}}-{{ app.location_short }}",
+        subnet: "10.0.0.0/27",
+        private: true,
+        service_endpoints: "Microsoft.Storage",
+      }
+    - {
+        name: "{{ dict.subnet }}-endpoints-{{ app.name }}-{{app.env}}-{{ app.location_short }}",
+        subnet: "10.0.0.32/27",
+        private: true,
+        service_endpoints: "Microsoft.Storage",
+      }
+    - {
+        name: "{{ dict.subnet }}-database-{{ app.name }}-{{app.env}}-{{ app.location_short }}",
+        subnet: "10.0.0.64/27",
+        private: true,
+        service_endpoints: "Microsoft.Storage",
+        service_delegation_name: "fs",
+        service_delegation: "Microsoft.DBforMySQL/flexibleServers",
+        service_delegation_action: "Microsoft.Network/virtualNetworks/subnets/join/action",
+      }
+
+# Set some defaults using the details defined up top
+##################################################
+location: "{{ app.location }}"

@@ -1,0 +1,62 @@
+name: "Ansible Playbook Run"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  run_ansible_playbook:
+    name: "Run Ansible Playbook"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout the code
+        id: checkout
+        uses: actions/checkout@v3
+
+      - name: Ensure that Python 3.10 is installed
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Login to Azure using a service principal
+        uses: Azure/login@v1
+        with:
+          creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
+
+      - name: Install Ansible
+        run: pip install ansible
+
+      - name: Install Azure Collection
+        run: ansible-galaxy collection install azure.azcollection
+
+      - name: Install Azure Requirements
+        run: pip install -r ~/.ansible/collections/ansible_collections/azure/azcollection/requirements-azure.txt
+
+      - name: Run the playbook (with ansible-playbook)
+        id: ansible-playbook-run
+        run: |
+          ANSIBLE_OUTPUT=$(ansible-playbook site.yml)
+          delimiter="$(openssl rand -hex 8)"
+          echo "summary<<${delimiter}" >> $GITHUB_OUTPUT
+          echo "## Ansible Playbook Output" >> $GITHUB_OUTPUT
+          echo "<details><summary>Click to expand</summary>" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo '```' >> $GITHUB_OUTPUT
+          echo "$ANSIBLE_OUTPUT" >> $GITHUB_OUTPUT
+          echo '```' >> $GITHUB_OUTPUT
+          echo "</details>" >> $GITHUB_OUTPUT
+          echo "${delimiter}" >> $GITHUB_OUTPUT
+
+      - name: Publish Ansible Playbook run to Task Summary
+        env:
+          SUMMARY: ${{ steps.ansible-playbook-run.outputs.summary }}
+        run: |
+          echo "$SUMMARY" >> $GITHUB_STEP_SUMMARY

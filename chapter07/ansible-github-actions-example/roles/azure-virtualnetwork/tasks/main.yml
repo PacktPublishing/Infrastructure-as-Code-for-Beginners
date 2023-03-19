@@ -1,0 +1,37 @@
+---
+# tasks file for roles/azure-virtualnetwork
+
+- name: Create the virtual network
+  azure.azcollection.azure_rm_virtualnetwork:
+    resource_group: "{{ resource_group_name }}"
+    name: "{{ virtual_network_name }}"
+    address_prefixes: "{{ vnet_config.cidr_block }}"
+    tags: "{{ common_tags }}"
+
+- name: Add the subnets
+  azure.azcollection.azure_rm_subnet:
+    resource_group: "{{ resource_group_name }}"
+    name: "{{ item.name }}"
+    address_prefix: "{{ item.subnet }}"
+    virtual_network: "{{ virtual_network_name }}"
+    service_endpoints:
+      - service: "{{ item.service_endpoints }}"
+  with_items: "{{ vnet_config.subnets }}"
+  when: "item.name is not search 'database'"
+  register: subnet_output
+
+- name: Add the subnets
+  azure.azcollection.azure_rm_subnet:
+    resource_group: "{{ resource_group_name }}"
+    name: "{{ item.name }}"
+    address_prefix: "{{ item.subnet }}"
+    virtual_network: "{{ virtual_network_name }}"
+    service_endpoints:
+      - service: "{{ item.service_endpoints }}"
+    delegations:
+      - name: "{{ item.service_delegation_name }}"
+        serviceName: "{{ item.service_delegation }}"
+        actions:
+          - "{{ item.service_delegation_action }}"
+  with_items: "{{ vnet_config.subnets }}"
+  when: "item.name is search 'database'"
