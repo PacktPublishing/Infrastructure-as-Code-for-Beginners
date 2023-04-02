@@ -1,1 +1,1 @@
-# Infrastructure-as-Code-for-Beginners-
+# Infrastructure-as-Code-for-Beginners
