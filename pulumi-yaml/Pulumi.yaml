@@ -1,0 +1,22 @@
+name: pulumi-yaml
+runtime: yaml
+description: A minimal Azure Native Pulumi YAML program
+outputs:
+  primaryStorageKey: ${storageAccountKeys.keys[0].value}
+resources:
+  resourceGroup:
+    type: azure-native:resources:ResourceGroup
+    properties:
+      resourceGroupName: rg-pulumi-yaml
+  sa:
+    type: azure-native:storage:StorageAccount
+    properties:
+      kind: StorageV2
+      resourceGroupName: ${resourceGroup.name}
+      sku:
+        name: Standard_LRS
+variables:
+  storageAccountKeys:
+    fn::azure-native:storage:listStorageAccountKeys:
+      accountName: ${sa.name}
+      resourceGroupName: ${resourceGroup.name}
