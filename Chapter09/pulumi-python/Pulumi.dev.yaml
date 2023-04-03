@@ -1,2 +1,3 @@
 config:
   azure-native:location: UKSouth
+  pulumi-python:Pulumi.dev.yaml: ""
