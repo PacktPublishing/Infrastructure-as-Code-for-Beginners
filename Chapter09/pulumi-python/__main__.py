@@ -7,7 +7,7 @@ from pulumi_azure_native import resources
 resource_group = resources.ResourceGroup(
     "resource_group",
     resource_group_name="rg-pulumi-python",
-    )
+)
 
 account = storage.StorageAccount(
     "sa",
