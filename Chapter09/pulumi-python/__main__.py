@@ -18,7 +18,6 @@ account = storage.StorageAccount(
     kind=storage.Kind.STORAGE_V2,
 )
 
-# Export the primary key of the Storage Account
 primary_key = (
     pulumi.Output.all(resource_group.name, account.name)
     .apply(
