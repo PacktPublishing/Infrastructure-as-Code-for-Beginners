@@ -50,6 +50,9 @@ With the following software and hardware list you can run all code files present
 
 We also provide a PDF file that has color images of the screenshots/diagrams used in this book. [Click here to download it](https://packt.link/uvP61).
 
+### Errata
+* Page 10: Figure 1.2 mentioned here is slightly incorrect. Here is the updated Figure:[1.2](https://github.com/PacktPublishing/Infrastructure-as-Code-for-Beginners/blob/main/img/1.2.png)
+
 ### Related products
 * Infrastructure as Code with Azure Bicep [[Packt]](https://www.packtpub.com/product/infrastructure-as-code-with-azure-bicep/9781801813747?utm_source=github&utm_medium=repository&utm_campaign=9781801813747) [[Amazon]](https://www.amazon.com/dp/1801813744)
 
